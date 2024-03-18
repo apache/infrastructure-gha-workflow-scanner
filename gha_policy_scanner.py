@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 import os
 import sys
 import yaml
@@ -9,22 +10,26 @@ import argparse
 import requests
 import logging
 import base64
+import json
 
 DEFAULT_CONTACT = None  # Set to none to go to default project ML
 
 SEND_MESSAGES = False
 
 # LOG BITS
-LOGFILE = "gha_scanner.log"
+LOGFILE = "logs/gha_scanner.log"
 LOG = logging.getLogger(__name__)
 VERBOSITY = {
+    0: logging.INFO,
     1: logging.CRITICAL,
     2: logging.ERROR,
     3: logging.WARNING,
     4: logging.INFO,
     5: logging.DEBUG,
 }
-STDOUT_FMT = logging.Formatter('{asctime} [{levelname}] {funcName}: {message}', style='{')
+STDOUT_FMT = logging.Formatter(
+    "{asctime} [{levelname}] {funcName}: {message}", style="{"
+)
 
 # POLICY VALUES
 GHA_MAX_CONCURRENCY = 10
@@ -38,10 +43,14 @@ URL = "https://pubsub.apache.org:2070/git/commit"
 
 def check_prt(wdata):
     LOG.debug("Checking workflow for `pull_request_target` trigger")
-    if "pull_request_target" in wdata.get(True, {}):
-        return False
-    else:
-        return True
+    try:
+        if "pull_request_target" in wdata.get(True, {}):
+            return False
+        else:
+            return True
+    except:
+        print("Error!")
+        LOG.error(wdata)
 
 
 def check_concurrency(wdata):
@@ -92,10 +101,9 @@ class Scanner:
         self.args = args
         self.s = requests.Session()
         self.s.headers.update({"Authorization": "token %s" % self.args.token})
-        
+
         LOG.info("Connecting to %s" % URL)
         asfpy.pubsub.listen_forever(self.handler, URL, raw=True)
-
 
     def list_flows(self, commit):
         r = self.s.get(
@@ -105,45 +113,45 @@ class Scanner:
         return r.json()
 
     def fetch_flow(self, commit, w_data):
-        r = self.s.get(
-            "%s/repos/apache/%s/contents/%s?ref=%s"
-            % (self.ghurl, commit["project"], w_data["path"], commit["hash"])
+        try:
+            r = self.s.get(
+                "%s/repos/apache/%s/contents/%s?ref=%s"
+                % (self.ghurl, commit["project"], w_data["path"], commit["hash"])
+            ).json()
+        except KeyError as e:
+            LOG.critical(e)
+        
+        r_content = yaml.safe_load(
+            "\n".join(
+                [
+                    line
+                    for line in base64.b64decode(r_data["content"])
+                    .decode("utf-8")
+                    .split("\n")
+                    if not re.match("^\s*#", line)
+                ]
+            )
         )
-        return r.json()
+        return r_content
 
     def scan_flow(self, commit, w_data):
         flow_data = self.fetch_flow(commit, w_data)
-        try:
-            w_flow = base64.b64decode(flow_data['content'])
-        except KeyError as e:
-            LOG.critical(flow_data)
-
-        LOG.debug(w_flow)
+        LOG.debug(flow_data)
 
         result = {}
         m = []
         for check in workflow_checks:
-            LOG.info("Checking %s:%s(%s): %s"%(commit['project'],w_data['name'],commit['hash'],check))
-            c_data = workflow_checks[check]["func"](w_flow)
+            LOG.info(
+                "Checking %s:%s(%s): %s"
+                % (commit["project"], w_data["name"], commit["hash"], check)
+            )
+            c_data = workflow_checks[check]["func"](flow_data)
             # All workflow checks return a bool, False if the workflow failed.
             if not c_data:
-                m.append(
-                    "\t" + workflow + ": " + workflow_checks[check]["desc"]
-                )
+                m.append("\t" + wdata["name"] + ": " + workflow_checks[check]["desc"])
             result[check] = c_data
-
-        return(result, m)
-
-        if len(message["body"]) > 2:
-            message["body"].extend(
-                [
-                    "Please remediate the above as soon as possible.",
-                    "If the above is not remediated after 30 days, we will turn off builds",
-                    "\nCheers,",
-                    "\tASF Infrastructure",
-                ]
-            )
-            self.send_report(message)
+        LOG.debug(result)
+        return (result, m)
 
     def send_report(self, message):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
@@ -170,20 +178,34 @@ class Scanner:
         }
 
         if "commit" in data:
+            p = re.compile(".github/workflows/*.yml")
             results = {}
-            r = [w for w in data["commit"].get("files", []) if ".github/workflows" in w]
+            r = [w for w in data["commit"].get("files", []) if p.match(w)]
             if len(r) > 0:
                 if not self.args.lazy:
-                    w_data = self.list_flows(data["commit"])
-                    for workflow in w_data["workflows"]:
-                        [ results[workflow['name']], m ] = self.scan_flow(data["commit"], workflow)
-                        message['body'].extend(m)
+                    w_list = self.list_flows(data["commit"])
+                    for workflow in w_list["workflows"]:
+                        [results[workflow["name"]], m] = self.scan_flow(
+                            data["commit"], workflow
+                        )
+                        message["body"].extend(m)
                     print(results)
-                    print(message)
+                    self.send_report(message)
                 else:
                     print(data)
             else:
                 LOG.info("Scanned commit: %s" % data["commit"]["hash"])
+
+
+            if len(message) >= 1:
+                    message["body"].extend(
+                        [
+                            "Please remediate the above as soon as possible.",
+                            "If the above is not remediated after 30 days, we will turn off builds",
+                            "\nCheers,",
+                            "\tASF Infrastructure",
+                        ]
+                    )
         else:
             LOG.info("Heartbeat Signal Detected")
 
@@ -192,11 +214,13 @@ if __name__ == "__main__":
     # Listen to commits where a file in .github/workflows/ is modified
     parser = argparse.ArgumentParser()
     logger = parser.add_mutually_exclusive_group()
-    logger.add_argument("-d", "--debug", action='store_true', default=False, help="Debug Switch")
+    logger.add_argument(
+        "-d", "--debug", action="store_true", default=False, help="Debug Switch"
+    )
     logger.add_argument(
         "-v",
-        action='count',
-        default=4,
+        action="count",
+        default=0,
         help="Add logging verbosity",
     )
 
@@ -220,6 +244,6 @@ if __name__ == "__main__":
     else:
         LOG.setLevel(VERBOSITY[args.v])
         logging.basicConfig(filename=LOGFILE)
-    
+
     gh = Scanner(args)
     gh.scan()
