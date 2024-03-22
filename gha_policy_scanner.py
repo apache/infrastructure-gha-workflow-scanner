@@ -54,7 +54,7 @@ def check_prt(wdata):
 
 
 def check_concurrency(wdata):
-    print(wdata)
+    LOG.debug("Checking workflow for max concurrency")
     for job in wdata["jobs"]:
         if "matrix" in wdata["jobs"][job].get("strategy", {}):
             concurrency = 1
@@ -68,7 +68,7 @@ def check_concurrency(wdata):
             else:
                 return True
         else:
-            print(wdata["jobs"][job]["strategy"])
+            LOG.debug(wdata["jobs"][job])
             return True
 
 
@@ -89,9 +89,6 @@ workflow_checks = {
 
 ### DO NOT EDIT BELOW THIS LINE ###
 # TODO Create a GitHubber to manage session AND
-#  * Fetch workflow listing by repo (list_flows)
-#  * Fetch workflow file content (get_flow)
-#  * Compare Workflows
 
 
 class Scanner:
@@ -120,12 +117,14 @@ class Scanner:
             ).json()
         except KeyError as e:
             LOG.critical(e)
-        
+       
+        LOG.debug(r)
+
         r_content = yaml.safe_load(
             "\n".join(
                 [
                     line
-                    for line in base64.b64decode(r_data["content"])
+                    for line in base64.b64decode(r["content"])
                     .decode("utf-8")
                     .split("\n")
                     if not re.match("^\s*#", line)
@@ -148,7 +147,7 @@ class Scanner:
             c_data = workflow_checks[check]["func"](flow_data)
             # All workflow checks return a bool, False if the workflow failed.
             if not c_data:
-                m.append("\t" + wdata["name"] + ": " + workflow_checks[check]["desc"])
+                m.append("\t" + w_data["name"] + ": " + workflow_checks[check]["desc"])
             result[check] = c_data
         LOG.debug(result)
         return (result, m)
@@ -178,34 +177,42 @@ class Scanner:
         }
 
         if "commit" in data:
-            p = re.compile(".github/workflows/*.yml")
+            p = re.compile("^\.github/workflows/.+\.yml")
             results = {}
             r = [w for w in data["commit"].get("files", []) if p.match(w)]
+            LOG.debug("found: %s" % r)
             if len(r) > 0:
                 if not self.args.lazy:
                     w_list = self.list_flows(data["commit"])
+                    LOG.debug(w_list)
                     for workflow in w_list["workflows"]:
+                        LOG.debug( "Scanning %s"% workflow['name'])
                         [results[workflow["name"]], m] = self.scan_flow(
                             data["commit"], workflow
                         )
                         message["body"].extend(m)
-                    print(results)
-                    self.send_report(message)
+                    LOG.debug(data)
                 else:
-                    print(data)
+                    LOG.error("Lazy scanning not supported yet")
+                    sys.exit(1)
             else:
                 LOG.info("Scanned commit: %s" % data["commit"]["hash"])
 
 
-            if len(message) >= 1:
-                    message["body"].extend(
-                        [
-                            "Please remediate the above as soon as possible.",
-                            "If the above is not remediated after 30 days, we will turn off builds",
-                            "\nCheers,",
-                            "\tASF Infrastructure",
-                        ]
-                    )
+            if len(message['body']) >= 3:
+                LOG.debug("Failures detected, sending message")
+                message["body"].extend(
+                    [
+                        "Please remediate the above as soon as possible.",
+                        "If the above is not remediated after 30 days, we will turn off builds",
+                        "\nCheers,",
+                        "\tASF Infrastructure",
+                    ]
+                )
+                self.send_report(message)
+            else:
+                LOG.debug("No Failures Detected")
+                LOG.info("Scanned commit: %s" % data["commit"]["hash"])
         else:
             LOG.info("Heartbeat Signal Detected")
 
@@ -243,7 +250,7 @@ if __name__ == "__main__":
         LOG.addHandler(to_stdout)
     else:
         LOG.setLevel(VERBOSITY[args.v])
-        logging.basicConfig(filename=LOGFILE)
+        logging.basicConfig(format="%(asctime)s [%(levelname)s] %(funcName)s: %(message)s", filename=LOGFILE)
 
     gh = Scanner(args)
     gh.scan()
