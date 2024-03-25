@@ -119,19 +119,23 @@ class Scanner:
             LOG.critical(e)
        
         LOG.debug(r)
-
-        r_content = yaml.safe_load(
-            "\n".join(
-                [
-                    line
-                    for line in base64.b64decode(r["content"])
-                    .decode("utf-8")
-                    .split("\n")
-                    if not re.match("^\s*#", line)
-                ]
+        try:
+            r_content = yaml.safe_load(
+                "\n".join(
+                    [
+                        line
+                        for line in base64.b64decode(r["content"])
+                        .decode("utf-8")
+                        .split("\n")
+                        if not re.match("^\s*#", line)
+                    ]
+                )
             )
-        )
-        return r_content
+            return r_content
+
+        except AttributeError as e:
+            return({})
+
 
     def scan_flow(self, commit, w_data):
         flow_data = self.fetch_flow(commit, w_data)
@@ -212,7 +216,6 @@ class Scanner:
                 self.send_report(message)
             else:
                 LOG.debug("No Failures Detected")
-                LOG.info("Scanned commit: %s" % data["commit"]["hash"])
         else:
             LOG.info("Heartbeat Signal Detected")
 
