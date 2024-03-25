@@ -118,7 +118,6 @@ class Scanner:
         except KeyError as e:
             LOG.critical(e)
        
-        LOG.debug(r)
         try:
             r_content = yaml.safe_load(
                 "\n".join(
@@ -133,8 +132,9 @@ class Scanner:
             )
             return r_content
 
-        except AttributeError as e:
-            return({})
+        except KeyError as e:
+            LOG.debug(r)
+            return(None)
 
 
     def scan_flow(self, commit, w_data):
@@ -143,17 +143,18 @@ class Scanner:
 
         result = {}
         m = []
-        for check in workflow_checks:
-            LOG.info(
-                "Checking %s:%s(%s): %s"
-                % (commit["project"], w_data["name"], commit["hash"], check)
-            )
-            c_data = workflow_checks[check]["func"](flow_data)
-            # All workflow checks return a bool, False if the workflow failed.
-            if not c_data:
-                m.append("\t" + w_data["name"] + ": " + workflow_checks[check]["desc"])
-            result[check] = c_data
-        LOG.debug(result)
+        if flow_data:
+            for check in workflow_checks:
+                LOG.info(
+                    "Checking %s:%s(%s): %s"
+                    % (commit["project"], w_data["name"], commit["hash"], check)
+                )
+                c_data = workflow_checks[check]["func"](flow_data)
+                # All workflow checks return a bool, False if the workflow failed.
+                if not c_data:
+                    m.append("\t" + w_data["name"] + ": " + workflow_checks[check]["desc"])
+                result[check] = c_data
+            LOG.debug(result)
         return (result, m)
 
     def send_report(self, message):
@@ -188,7 +189,7 @@ class Scanner:
             if len(r) > 0:
                 if not self.args.lazy:
                     w_list = self.list_flows(data["commit"])
-                    LOG.debug(w_list)
+                    LOG.debug([ item['html_url'] for item in w_list['workflows']])
                     for workflow in w_list["workflows"]:
                         LOG.debug( "Scanning %s"% workflow['name'])
                         [results[workflow["name"]], m] = self.scan_flow(
