@@ -111,10 +111,13 @@ class Scanner:
 
     def fetch_flow(self, commit, w_data):
         try:
-            r = self.s.get(
-                "%s/repos/apache/%s/contents/%s?ref=%s"
-                % (self.ghurl, commit["project"], w_data["path"], commit["hash"])
-            ).json()
+            if re.match(r"\.yml$", w_data["path"]):
+                r = self.s.get(
+                    "%s/repos/apache/%s/contents/%s?ref=%s"
+                    % (self.ghurl, commit["project"], w_data["path"], commit["hash"])
+                ).json()
+            LOG.debug("Fetching %s"%w_data['path'])
+
         except KeyError as e:
             LOG.critical(e)
        
@@ -130,17 +133,17 @@ class Scanner:
                     ]
                 )
             )
-            return r_content
 
         except KeyError as e:
             LOG.debug(r)
             return(None)
 
+        return r_content
 
     def scan_flow(self, commit, w_data):
         flow_data = self.fetch_flow(commit, w_data)
         LOG.debug(flow_data)
-
+        
         result = {}
         m = []
         if flow_data:
@@ -154,8 +157,9 @@ class Scanner:
                 if not c_data:
                     m.append("\t" + w_data["name"] + ": " + workflow_checks[check]["desc"])
                 result[check] = c_data
-            LOG.debug(result)
-        return (result, m)
+            return (result, m)
+        else:
+            return None
 
     def send_report(self, message):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
@@ -191,12 +195,16 @@ class Scanner:
                     w_list = self.list_flows(data["commit"])
                     LOG.debug([ item['html_url'] for item in w_list['workflows']])
                     for workflow in w_list["workflows"]:
-                        LOG.debug( "Scanning %s"% workflow['name'])
-                        [results[workflow["name"]], m] = self.scan_flow(
-                            data["commit"], workflow
-                        )
-                        message["body"].extend(m)
-                    LOG.debug(data)
+                        if re.match(r".yml$", workflow['path']):
+                            LOG.info( "Scanning %s"% workflow['name'])
+                            [results[workflow["name"]], m] = self.scan_flow(
+                                data["commit"], workflow
+                            )
+                            message["body"].extend(m)
+                        else:
+                            # Continue if no yml extension detected
+                            # Needed because /blob/master keeps cropping up and killing the process
+                            continue
                 else:
                     LOG.error("Lazy scanning not supported yet")
                     sys.exit(1)
@@ -205,7 +213,7 @@ class Scanner:
 
 
             if len(message['body']) >= 3:
-                LOG.debug("Failures detected, sending message")
+                LOG.info("Failures detected, sending message")
                 message["body"].extend(
                     [
                         "Please remediate the above as soon as possible.",
@@ -214,9 +222,8 @@ class Scanner:
                         "\tASF Infrastructure",
                     ]
                 )
+                LOG.debug(message)
                 self.send_report(message)
-            else:
-                LOG.debug("No Failures Detected")
         else:
             LOG.info("Heartbeat Signal Detected")
 
