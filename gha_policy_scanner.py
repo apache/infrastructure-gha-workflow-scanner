@@ -72,7 +72,6 @@ def check_concurrency(wdata):
                 LOG.debug("max-concurrency check Passed")
                 return True
         else:
-            LOG.debug(wdata["jobs"][job])
             return True
 
 
@@ -142,6 +141,10 @@ class Scanner:
             LOG.debug(r)
             return None
 
+        except TypeError as e:
+            LOG.debug(r)
+            return None
+
         return r_content
             
     def scan_flow(self, commit, w_data):
@@ -205,8 +208,7 @@ class Scanner:
                     if m:
                         message["body"].extend(m)
                     else:
-                        LOG.debug("%s returned None"%workflow['name'])
-                        continue
+                        LOG.info(results)
             else:
                 LOG.info("Scanned commit: %s" % data["commit"]["hash"])
 
