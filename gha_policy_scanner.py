@@ -35,11 +35,12 @@ STDOUT_FMT = logging.Formatter(
 GHA_MAX_CONCURRENCY = 10
 URL = "https://pubsub.apache.org:2070/git/commit"
 
-### WORKFLOW CHECK FUNCTIONS
-# Require only workflow yaml data
-# Return True if the test is passed
-# Return False is the test is failed
-
+### WORKFLOW CHECK FUNCTION REQUIREMENTS ###
+# Workflow check must be registered in WORKFLOW_CHECKS to run.
+# Require only the yaml workflow.
+# Return only True or False.
+# * Return True if the test is passed.
+# * Return False is the test is failed.
 
 def check_prt(wdata):
     LOG.debug("Checking workflow for `pull_request_target` trigger")
@@ -51,7 +52,6 @@ def check_prt(wdata):
             LOG.debug("Pull Request Target test Passed")
             return True
     except:
-        print("Error!")
         LOG.error(wdata)
 
 
@@ -76,8 +76,10 @@ def check_concurrency(wdata):
 
 
 ### WORKFLOW CHECK MAP
-
-workflow_checks = {
+# "check_name": {
+#     "func": functionName,
+#     "desc": "check description / link to doc / remediation step"
+WORKFLOW_CHECKS = {
     "pull_request_target": {
         "func": check_prt,
         "desc": "`pull_request_target` was found as a workflow trigger.",
@@ -89,10 +91,7 @@ workflow_checks = {
     },
 }
 
-
-### DO NOT EDIT BELOW THIS LINE ###
-# TODO Create a GitHubber to manage session AND
-
+### NO NEED TO EDIT BELOW THIS LINE ###
 
 class Scanner:
     # Handles API requests to GitHub
@@ -154,15 +153,15 @@ class Scanner:
         result = {}
         m = []
         if flow_data:
-            for check in workflow_checks:
+            for check in WORKFLOW_CHECKS:
                 LOG.info(
                     "Checking %s:%s(%s): %s"
                     % (commit["project"], w_data["name"], commit["hash"], check)
                 )
-                c_data = workflow_checks[check]["func"](flow_data)
+                c_data = WORKFLOW_CHECKS[check]["func"](flow_data)
                 # All workflow checks return a bool, False if the workflow failed.
                 if not c_data:
-                    m.append("\t" + w_data["name"] + ": " + workflow_checks[check]["desc"])
+                    m.append("\t" + w_data["name"] + ": " + WORKFLOW_CHECKS[check]["desc"])
                 result[check] = c_data
             return (result, m)
         else:
