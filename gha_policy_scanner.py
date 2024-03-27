@@ -45,8 +45,10 @@ def check_prt(wdata):
     LOG.debug("Checking workflow for `pull_request_target` trigger")
     try:
         if "pull_request_target" in wdata.get(True, {}):
+            LOG.debug("Pull Request Target test failed")
             return False
         else:
+            LOG.debug("Pull Request Target test Passed")
             return True
     except:
         print("Error!")
@@ -64,8 +66,10 @@ def check_concurrency(wdata):
                 concurrency >= GHA_MAX_CONCURRENCY
                 and "max-parallel" not in wdata["jobs"][job]["strategy"]
             ):
+                LOG.debug("max-concurrency check Failed")
                 return False
             else:
+                LOG.debug("max-concurrency check Passed")
                 return True
         else:
             LOG.debug(wdata["jobs"][job])
@@ -111,16 +115,16 @@ class Scanner:
 
     def fetch_flow(self, commit, w_data):
         try:
-            if re.match(r"\.yml$", w_data["path"]):
-                r = self.s.get(
-                    "%s/repos/apache/%s/contents/%s?ref=%s"
-                    % (self.ghurl, commit["project"], w_data["path"], commit["hash"])
-                ).json()
+            r = self.s.get(
+                "%s/repos/apache/%s/contents/%s?ref=%s"
+                % (self.ghurl, commit["project"], w_data["path"], commit["hash"])
+            ).json()
             LOG.debug("Fetching %s"%w_data['path'])
 
         except KeyError as e:
             LOG.critical(e)
-       
+            return None
+
         try:
             r_content = yaml.safe_load(
                 "\n".join(
@@ -136,10 +140,10 @@ class Scanner:
 
         except KeyError as e:
             LOG.debug(r)
-            return(None)
+            return None
 
         return r_content
-
+            
     def scan_flow(self, commit, w_data):
         flow_data = self.fetch_flow(commit, w_data)
         LOG.debug(flow_data)
@@ -159,7 +163,7 @@ class Scanner:
                 result[check] = c_data
             return (result, m)
         else:
-            return None
+            return (None, None)
 
     def send_report(self, message):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
@@ -186,28 +190,23 @@ class Scanner:
         }
 
         if "commit" in data:
-            p = re.compile("^\.github/workflows/.+\.yml")
+            p = re.compile("^\.github\/workflows\/.+\.yml$")
             results = {}
             r = [w for w in data["commit"].get("files", []) if p.match(w)]
             LOG.debug("found: %s" % r)
             if len(r) > 0:
-                if not self.args.lazy:
-                    w_list = self.list_flows(data["commit"])
-                    LOG.debug([ item['html_url'] for item in w_list['workflows']])
-                    for workflow in w_list["workflows"]:
-                        if re.match(r".yml$", workflow['path']):
-                            LOG.info( "Scanning %s"% workflow['name'])
-                            [results[workflow["name"]], m] = self.scan_flow(
-                                data["commit"], workflow
-                            )
-                            message["body"].extend(m)
-                        else:
-                            # Continue if no yml extension detected
-                            # Needed because /blob/master keeps cropping up and killing the process
-                            continue
-                else:
-                    LOG.error("Lazy scanning not supported yet")
-                    sys.exit(1)
+                w_list = self.list_flows(data["commit"])
+                LOG.debug([ item['path'] for item in w_list['workflows']])
+                for workflow in w_list["workflows"]:
+                    LOG.debug("Handling: %s"%workflow['path'])
+                    [results[workflow["name"]], m] = self.scan_flow(
+                        data["commit"], workflow
+                    )
+                    if m:
+                        message["body"].extend(m)
+                    else:
+                        LOG.debug("%s returned None"%workflow['name'])
+                        continue
             else:
                 LOG.info("Scanned commit: %s" % data["commit"]["hash"])
 
@@ -243,13 +242,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("-t", "--token", help="GitHub Token")
-    parser.add_argument(
-        "-L",
-        "--lazy",
-        action="store_true",
-        default=False,
-        help="Scan only changed workflow files",
-    )
+
     args = parser.parse_args()
 
     # LOG JAZZ!
