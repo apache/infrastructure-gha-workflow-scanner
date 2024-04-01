@@ -22,22 +22,22 @@ URL = "https://pubsub.apache.org:2070/git/commit"
 # Return only True or False.
 # * Return True if the test is passed.
 # * Return False is the test is failed.
-
+log = logging.getLogger(__name__)
 def check_prt(wdata):
-    LOG.debug("Checking workflow for `pull_request_target` trigger")
+    log.debug("Checking workflow for `pull_request_target` trigger")
     try:
         if "pull_request_target" in wdata.get(True, {}):
-            LOG.debug("Pull Request Target test failed")
+            log.debug("Pull Request Target test failed")
             return False
         else:
-            LOG.debug("Pull Request Target test Passed")
+            log.debug("Pull Request Target test Passed")
             return True
     except:
-        LOG.error(wdata)
+        log.error(wdata)
 
 
 def check_concurrency(wdata):
-    LOG.debug("Checking workflow for max concurrency")
+    log.debug("Checking workflow for max concurrency")
     for job in wdata["jobs"]:
         if "matrix" in wdata["jobs"][job].get("strategy", {}):
             concurrency = 1
@@ -47,10 +47,10 @@ def check_concurrency(wdata):
                 concurrency >= GHA_MAX_CONCURRENCY
                 and "max-parallel" not in wdata["jobs"][job]["strategy"]
             ):
-                LOG.debug("max-concurrency check Failed")
+                log.debug("max-concurrency check Failed")
                 return False
             else:
-                LOG.debug("max-concurrency check Passed")
+                log.debug("max-concurrency check Passed")
                 return True
         else:
             return True
