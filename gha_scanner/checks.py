@@ -12,9 +12,10 @@ import logging
 import base64
 import json
 
+log = logging.getLogger(__name__)
+
 # POLICY VALUES
-GHA_MAX_CONCURRENCY = 10
-URL = "https://pubsub.apache.org:2070/git/commit"
+GHA_MAX_CONCURRENCY = 20
 
 ### WORKFLOW CHECK FUNCTION REQUIREMENTS ###
 # Workflow check must be registered in WORKFLOW_CHECKS to run.
@@ -22,7 +23,7 @@ URL = "https://pubsub.apache.org:2070/git/commit"
 # Return only True or False.
 # * Return True if the test is passed.
 # * Return False is the test is failed.
-log = logging.getLogger(__name__)
+
 def check_prt(wdata):
     log.debug("Checking workflow for `pull_request_target` trigger")
     try:
