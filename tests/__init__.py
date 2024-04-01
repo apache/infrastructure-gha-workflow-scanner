@@ -16,8 +16,7 @@ def test_list_flows():
 def test_fetch_flow():
     result = gh.fetch_flow(data.test_commit, data.test_wdata)
     expected = data.fetch_flow_expected
-    print(result)
-    open("resultfile", "w+").write(json.dumps(result))
-    assert result == expected
+    assert json.dumps(result) == json.dumps(expected)
 
+def test_check_prt():
 

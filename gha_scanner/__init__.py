@@ -66,14 +66,11 @@ class Scanner:
                 "%s/%s/%s/%s"
                 % (rawUrl, commit['project'], commit['hash'], w_data['path'])
             )
-            self.log(r.content)
-
             r_content = yaml.safe_load(
                 "\n".join(
                     [
                         line
-                        for line in base64.b64decode(r.content)
-                        .decode("utf-8")
+                        for line in r.content.decode("utf-8")
                         .split("\n")
                         if not re.match(r"^\s*#", line)
                     ]
@@ -81,14 +78,14 @@ class Scanner:
             )
 
         except KeyError as e:
-            self.log.debug("%s"%e)
+            self.log.critical(e)
             return None
 
         except TypeError as e:
-            self.log.debug("%s"%e)
+            self.log.critical(e)
             return None
 
-        self.log.debug(r_content)
+        self.log.debug("retrieved: %s"%w_data['path'])
         return r_content
             
     def scan_flow(self, commit, w_data):
