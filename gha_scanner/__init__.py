@@ -15,14 +15,39 @@ from . import checks
 
 class Scanner:
     # Handles API requests to GitHub
-    def __init__(self, token):
-        print(dir(checks))
+    def __init__(self, config):
+        self.config = config
         self.ghurl = "https://api.github.com"
         self.s = requests.Session()
-        self.s.headers.update({"Authorization": "token %s" % token})
+        self.s.headers.update({"Authorization": "token %s" % self.config['gha_token']})
+        self.pubsub = "https://pubsub.apache.org:2070/git/commits"
+        self.log = logging.getLogger(__name__)
+        self.verbosity = {
+        0: logging.INFO,
+        1: logging.CRITICAL,
+        2: logging.ERROR,
+        3: logging.WARNING,
+        4: logging.INFO,
+        5: logging.DEBUG,
+        }
 
-        LOG.info("Connecting to %s" % URL)
-        asfpy.pubsub.listen_forever(self.handler, URL, raw=True)
+        self.stdout_fmt = logging.Formatter(
+        "{asctime} [{levelname}] {funcName}: {message}", style="{"
+        )
+
+        if self.config['logfile'] == "stdout":
+            self.to_stdout = logging.StreamHandler(sys.stdout)
+            self.to_stdout.setLevel(self.verbosity[self.config['verbosity']])
+            self.to_stdout.setFormatter(self.stdout_fmt)
+            self.log.setLevel(self.verbosity[self.config['verbosity']])
+            self.log.addHandler(self.to_stdout)
+        else:
+            self.log.setLevel(self.verbosity[self.config['verbosity']])
+            logging.basicConfig(format="%(asctime)s [%(levelname)s] %(funcName)s: %(message)s", filename=self.config['logfile'])
+
+    def scan(self):
+        self.log.info("Connecting to %s" % self.pubsub)
+        asfpy.pubsub.listen_forever(self.handler, self.pubsub, raw=True)
 
     # Fetch all workflows for the project the given hash
     def list_flows(self, commit):
@@ -35,56 +60,54 @@ class Scanner:
     # Fetch the yaml workflow from github
     def fetch_flow(self, commit, w_data):
         try:
-            LOG.debug("Fetching %s"%w_data['path'])
             rawUrl = "https://raw.githubusercontent.com/apache"
+            self.log.debug("Fetching %s/%s/%s/%s"%(rawUrl, commit['project'], commit['hash'], w_data['path']))
             r = self.s.get(
                 "%s/%s/%s/%s"
-                % (rawUrl, commit["project"], commit['hash'], w_data["path"])
+                % (rawUrl, commit['project'], commit['hash'], w_data['path'])
             )
-            LOG.debug(r)
-        except:
-            LOG.debug(r)
-        try:
+            self.log(r.content)
+
             r_content = yaml.safe_load(
                 "\n".join(
                     [
                         line
-                        for line in base64.b64decode(r["content"])
+                        for line in base64.b64decode(r.content)
                         .decode("utf-8")
                         .split("\n")
-                        if not re.match("^\s*#", line)
+                        if not re.match(r"^\s*#", line)
                     ]
                 )
             )
 
         except KeyError as e:
-            LOG.debug(r)
+            self.log.debug("%s"%e)
             return None
 
         except TypeError as e:
-            LOG.debug(r)
+            self.log.debug("%s"%e)
             return None
 
-        LOG.debug(r_content)
+        self.log.debug(r_content)
         return r_content
             
     def scan_flow(self, commit, w_data):
         flow_data = self.fetch_flow(commit, w_data)
          
-        LOG.debug(flow_data)
+        self.log.debug(flow_data)
         
         result = {}
         m = []
         if flow_data:
-            for check in WORKFLOW_CHECKS:
-                LOG.info(
+            for check in checks.WORKFLOW_CHECKS:
+                self.log.info(
                     "Checking %s:%s(%s): %s"
                     % (commit["project"], w_data["name"], commit["hash"], check)
                 )
-                c_data = WORKFLOW_CHECKS[check]["func"](flow_data)
+                c_data = checks.WORKFLOW_CHECKS[check]["func"](flow_data)
                 # All workflow checks return a bool, False if the workflow failed.
                 if not c_data:
-                    m.append("\t" + w_data["name"] + ": " + WORKFLOW_CHECKS[check]["desc"])
+                    m.append("\t" + w_data["name"] + ": " + checks.WORKFLOW_CHECKS[check]["desc"])
                 result[check] = c_data
             return (result, m)
         else:
@@ -115,20 +138,20 @@ class Scanner:
         }
 
         if "commit" in data:
-            p = re.compile("^\.github\/workflows\/.+\.yml$")
+            p = re.compile(r"^\.github\/workflows\/.+\.yml$")
             results = {}
             r = [w for w in data["commit"].get("files", []) if p.match(w)]
-            LOG.debug("found %s workflow files" % len(r))
+            self.log.debug("found %s workflow files" % len(r))
             if len(r) > 0:
                 w_list = self.list_flows(data["commit"])
-                LOG.debug([ item['path'] for item in w_list['workflows']])
+                self.log.debug([ item['path'] for item in w_list['workflows']])
                 for workflow in w_list["workflows"]:
                     # Handle the odd ''
                     if not workflow['path']:
-                        LOG.debug(workflow)
+                        self.log.debug(workflow)
                         continue
                     
-                    LOG.debug("Handling: %s"%workflow['path'])
+                    self.log.debug("Handling: %s"%workflow['path'])
 
                     results[workflow["name"]], m = self.scan_flow(
                         data["commit"], workflow
@@ -137,13 +160,13 @@ class Scanner:
                     if m:
                         message["body"].extend(m)
                     else:
-                        LOG.debug(results)
+                        self.log.debug(results)
             else:
-                LOG.info("Scanned commit: %s" % data["commit"]["hash"])
+                self.log.info("Scanned commit: %s" % data["commit"]["hash"])
 
 
             if len(message['body']) >= 3:
-                LOG.info("Failures detected, sending message")
+                self.log.info("Failures detected, sending message")
                 message["body"].extend(
                     [
                         "Please remediate the above as soon as possible.",
@@ -152,8 +175,8 @@ class Scanner:
                         "\tASF Infrastructure",
                     ]
                 )
-                LOG.debug(message)
+                self.log.debug(message)
                 self.send_report(message)
         else:
-            LOG.info("Heartbeat Signal Detected")
+            self.log.info("Heartbeat Signal Detected")
 
