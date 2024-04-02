@@ -13,10 +13,12 @@ def test_list_flows():
     expected = data.passing_list_flows
     assert json.dumps(result, sort_keys=True) == json.dumps(expected, sort_keys=True)
 
+
 def test_fetch_flow():
     result = gh.fetch_flow(data.passing_commit, data.passing_wdata)
     expected = data.passing_workflow
     assert json.dumps(result) == json.dumps(expected)
+
 
 def test_check_prt_pass():
     result = gha_scanner.checks.check_prt(data.passing_workflow)

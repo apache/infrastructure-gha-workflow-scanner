@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 import re
-import os
 import sys
 import yaml
-import subprocess
 import asfpy.messaging
 import asfpy.pubsub
 import argparse
 import requests
 import logging
-import base64
 import json
 from . import checks
 
@@ -43,6 +40,7 @@ class Log:
                 format="%(asctime)s [%(levelname)s] %(funcName)s: %(message)s",
                 filename=self.config["logfile"],
             )
+
 
 class Scanner:
     # Handles API requests to GitHub
@@ -112,7 +110,9 @@ class Scanner:
                     "Checking %s:%s(%s): %s"
                     % (commit["project"], w_data["name"], commit["hash"], check)
                 )
-                c_data = checks.WORKFLOW_CHECKS[check]["func"](self.logger.log, flow_data)
+                c_data = checks.WORKFLOW_CHECKS[check]["func"](
+                    self.logger.log, flow_data
+                )
                 # All workflow checks return a bool, False if the workflow failed.
                 if not c_data:
                     m.append(

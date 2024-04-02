@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
-import re
-import os
-import sys
-import yaml
-import subprocess
-import asfpy.messaging
-import asfpy.pubsub
-import argparse
-import requests
 import logging
-import base64
-import json
 
 log = logging.getLogger(__name__)
 
@@ -23,6 +12,7 @@ GHA_MAX_CONCURRENCY = 20
 # Return only True or False.
 # * Return True if the test is passed.
 # * Return False is the test is failed.
+
 
 def check_prt(wdata):
     log.debug("Checking workflow for `pull_request_target` trigger")
