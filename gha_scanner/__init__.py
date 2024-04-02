@@ -111,7 +111,7 @@ class Scanner:
                     % (commit["project"], w_data["name"], commit["hash"], check)
                 )
                 c_data = checks.WORKFLOW_CHECKS[check]["func"](
-                    self.logger.log, flow_data
+                    flow_data
                 )
                 # All workflow checks return a bool, False if the workflow failed.
                 if not c_data:
@@ -134,10 +134,6 @@ class Scanner:
                 subject=message["subject"],
                 message="\n".join(message["body"]),
             )
-        else:
-            print("TO: %s" % ",".join(message["recips"]))
-            print("SUBJECT: %s" % message["subject"])
-            print("MESSAGE: %s" % "\n".join(message["body"]))
 
     def handler(self, data):
         message = {
