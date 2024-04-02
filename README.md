@@ -3,8 +3,11 @@
 ## Setting up
 `pipenv install`
 
+Enter your (ideally read only, no more is needed) github token
+into the gha_scanner.config file.
+
 ## Starting
-`pipenv run python3 ./gha_policy_scanner.py -t $ghtoken`
+`pipenv run python3 ./scanner.py`
 
 ## Logging
 
