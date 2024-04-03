@@ -1,6 +1,7 @@
 passing_commit = {
     "project": "superset",
-    "hash": "951d7d66ac00d32032317f4d7085391db6325d11",
+    "hash": "951d7d66",
+    "sha": "951d7d66ac00d32032317f4d7085391db6325d11",
 }
 passing_wdata = {"path": ".github/workflows/license-check.yml"}
 passing_workflow = {

@@ -49,7 +49,7 @@ class Scanner:
         self.ghurl = "https://api.github.com"
         self.s = requests.Session()
         self.s.headers.update({"Authorization": "token %s" % self.config["gha_token"]})
-        self.pubsub = "https://pubsub.apache.org:2070/git/commits"
+        self.pubsub = "https://pubsub.apache.org:2070/git/commit"
         self.logger = Log(config)
 
     def scan(self):
@@ -60,7 +60,7 @@ class Scanner:
     def list_flows(self, commit):
         r = self.s.get(
             "%s/repos/apache/%s/actions/workflows?ref=%s"
-            % (self.ghurl, commit["project"], commit["hash"])
+            % (self.ghurl, commit["project"], commit["sha"])
         )
         return r.json()
 
@@ -70,11 +70,11 @@ class Scanner:
             rawUrl = "https://raw.githubusercontent.com/apache"
             self.logger.log.debug(
                 "Fetching %s/%s/%s/%s"
-                % (rawUrl, commit["project"], commit["hash"], w_data["path"])
+                % (rawUrl, commit["project"], commit["sha"], w_data["path"])
             )
             r = self.s.get(
                 "%s/%s/%s/%s"
-                % (rawUrl, commit["project"], commit["hash"], w_data["path"])
+                % (rawUrl, commit["project"], commit["sha"], w_data["path"])
             )
             r_content = yaml.safe_load(
                 "\n".join(
@@ -93,6 +93,11 @@ class Scanner:
         except TypeError as e:
             self.logger.log.critical(e)
             return None
+        
+        self.logger.log.debug(r_content.keys())
+        if 404 in r_content.keys():
+            self.logger.log.error("%s doesn't exist in %s"%(w_data["path"], commit["hash"]))
+            return None
 
         self.logger.log.debug("retrieved: %s" % w_data["path"])
         return r_content
@@ -105,6 +110,7 @@ class Scanner:
         m = []
 
         if flow_data:
+            self.logger.log.debug(flow_data)
             for check in checks.WORKFLOW_CHECKS:
                 self.logger.log.info(
                     "Checking %s:%s(%s): %s"
@@ -128,12 +134,11 @@ class Scanner:
 
     def send_report(self, message):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
-        if SEND_MESSAGES:
-            asfpy.messaging.mail(
-                recipients=message["recips"],
-                subject=message["subject"],
-                message="\n".join(message["body"]),
-            )
+        asfpy.messaging.mail(
+            recipients=message["recips"],
+            subject=message["subject"],
+            message="\n".join(message["body"]),
+        )
 
     def handler(self, data):
         message = {
@@ -141,7 +146,7 @@ class Scanner:
                 "Greetings PMC!",
                 "Our analysis has found that the following GitHub Actions workflows need remediation:",
             ],
-            "recips": ["root@apache.org"],
+            "recips": ["dfoulks@apache.org"],
             "subject": "GitHub Actions workflow policy violation",
         }
 

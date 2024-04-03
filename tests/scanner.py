@@ -3,10 +3,15 @@ import gha_scanner
 import yaml
 import pytest
 import json
+import re
 
 config = yaml.safe_load(open("gha_scanner.config", "r").read())
 gh = gha_scanner.Scanner(config)
 
+def test_ghtoken():
+    result = config['gha_token']
+    expected = "$GITHUB_TOKEN"
+    assert result != expected
 
 def test_list_flows():
     result = gh.list_flows(data.passing_commit)
