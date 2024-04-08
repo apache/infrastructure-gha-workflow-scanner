@@ -1,0 +1,31 @@
+from . import data
+import gha_scanner
+import yaml
+import pytest
+import json
+import re
+
+config = yaml.safe_load(open("gha_scanner.config", "r").read())
+gh = gha_scanner.Scanner(config)
+
+def test_ghtoken():
+    result = config['gha_token']
+    expected = "$GITHUB_TOKEN"
+    assert result != expected
+
+def test_list_flows():
+    result = gh.list_flows(data.passing_commit)
+    expected = data.passing_list_flows
+    assert json.dumps(result, sort_keys=True) == json.dumps(expected, sort_keys=True)
+
+
+def test_fetch_flow():
+    result = gh.fetch_flow(data.passing_commit, data.passing_wdata)
+    expected = data.passing_workflow
+    assert json.dumps(result) == json.dumps(expected)
+
+
+def test_check_prt_pass():
+    result = gha_scanner.checks.check_prt(data.passing_workflow)
+    expected = True
+    assert result == expected

@@ -3,9 +3,16 @@
 ## Setting up
 `pipenv install`
 
+Create a Read-Only GitHub token
+
+Enter your GitHub token into the gha_scanner.config file.
+Optionally, copy the gha_scanner.config file somewhere else
+and pass it to `scanner.py` with `-c/--config`.
+
+
 ## Starting
-`pipenv run python3 ./gha_policy_scanner.py -t $ghtoken`
+`pipenv run python3 ./scanner.py`
 
 ## Logging
 
-The policy scanner logs to gha_scan.log by default.
+The policy scanner logs to logs/gha_scanner.log by default.
