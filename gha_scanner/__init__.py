@@ -144,6 +144,7 @@ class Scanner:
         message = {
             "body": [
                 "Greetings PMC!",
+                f"The repository: {data['project']} has been scanned",
                 "Our analysis has found that the following GitHub Actions workflows need remediation:",
             ],
             "recips": ["dfoulks@apache.org"],
