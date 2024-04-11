@@ -194,9 +194,7 @@ class Scanner:
             else:
                 self.logger.log.info("Scanned commit: %s" % data["commit"]["hash"])
             
-            self.logger.log.debug(message['body'])
-
-            if len(message["body"]) >= 4:
+            if len(message["body"]) >= 3:
                 self.logger.log.info("Failures detected, sending message")
                 message["body"].extend(
                     [
