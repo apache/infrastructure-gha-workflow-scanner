@@ -165,10 +165,10 @@ class Scanner:
             message = {
                 "body": [
                     f"Greetings {proj_name.capitalize()} PMC!\n",
-                    f"The repository: {data['commit']['project']} has been scanned",
+                    f"The repository: {data['commit']['project']} has been scanned.",
                     "Our analysis has found that the following GitHub Actions workflows need remediation:",
                 ],
-                "recips": ["dfoulks@apache.org"],
+                "recips": ["notifications@infra.apache.org"],
                 "subject": "GitHub Actions workflow policy violation",
             }
 
@@ -202,8 +202,10 @@ class Scanner:
                 self.logger.log.info("Failures detected, sending message")
                 message["body"].extend(
                     [
-                        "Please remediate the above as soon as possible.",
-                        "If the above is not remediated after 30 days, we will turn off builds",
+                        "For more information on the GitHub Actions workflow policy, visit:",
+                        "https://infra.apache.org/github-actions-policy.html",
+                        "Please remediate the above as soon as possible. if after after 60 days",
+                        "these problems are not addressed, we will turn off builds",
                         "\nCheers,",
                         "\tASF Infrastructure",
                     ]
