@@ -160,7 +160,7 @@ class Scanner:
 
             message = {
                 "body": [
-                    f"Greetings {proj_name.capitalize()}",
+                    f"Greetings {proj_name.capitalize()} PMC!\n",
                     f"The repository: {data['commit']['project']} has been scanned",
                     "Our analysis has found that the following GitHub Actions workflows need remediation:",
                 ],
@@ -196,7 +196,7 @@ class Scanner:
             
             self.logger.log.debug(message['body'])
 
-            if len(message["body"]) >= 3:
+            if len(message["body"]) >= 4:
                 self.logger.log.info("Failures detected, sending message")
                 message["body"].extend(
                     [
