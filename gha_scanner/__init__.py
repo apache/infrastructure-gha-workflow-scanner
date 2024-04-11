@@ -154,8 +154,12 @@ class Scanner:
                 proj_mail = f"private@{reponame[1]}.apache.org"
                 proj_name = reponame[1]
             else:
-                proj_mail = f"private@{self.mail_map[reponame[0]]}.apache.org"
-                proj_name = self.mail_map[reponame[0]]
+                try:
+                    proj_mail = f"private@{self.mail_map[reponame[0]]}.apache.org"
+                    proj_name = self.mail_map[reponame[0]]
+                except KeyError:
+                    proj_mail = "root@apache.org"
+                    proj_name = "Foundation"
 
 
             message = {
