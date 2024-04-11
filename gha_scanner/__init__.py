@@ -48,6 +48,9 @@ class Scanner:
         self.config = config
         self.ghurl = "https://api.github.com"
         self.s = requests.Session()
+        self.mail_map = {} 
+        raw_map = self.s.get("https://whimsy.apache.org/public/committee-info.json").json()['committees']
+        [ self.mail_map.update({ item: raw_map[item]['mail_list']}) for item in raw_map ]
         self.s.headers.update({"Authorization": "token %s" % self.config["gha_token"]})
         self.pubsub = "https://pubsub.apache.org:2070/git/commit"
         self.logger = Log(config)
@@ -141,17 +144,30 @@ class Scanner:
         )
 
     def handler(self, data):
-        message = {
-            "body": [
-                "Greetings PMC!",
-                f"The repository: {data['project']} has been scanned",
-                "Our analysis has found that the following GitHub Actions workflows need remediation:",
-            ],
-            "recips": ["dfoulks@apache.org"],
-            "subject": "GitHub Actions workflow policy violation",
-        }
-
         if "commit" in data:
+            reponame = data["commit"]["project"].split("-")
+            self.logger.log.debug(reponame)
+            proj_name = None
+            proj_mail = None
+
+            if "incubator" in reponame:
+                proj_mail = f"private@{self.mail_map[reponame[1]]}.apache.org"
+                proj_name = self.mail_map[reponame[1]]
+            else:
+                proj_mail = f"private@{self.mail_map[reponame[0]]}.apache.org"
+                proj_name = self.mail_map[reponame[0]]
+
+
+            message = {
+                "body": [
+                    f"Greetings {proj_name.capitalize()}",
+                    f"The repository: {data['commit']['project']} has been scanned",
+                    "Our analysis has found that the following GitHub Actions workflows need remediation:",
+                ],
+                "recips": ["dfoulks@apache.org"],
+                "subject": "GitHub Actions workflow policy violation",
+            }
+
             p = re.compile(r"^\.github\/workflows\/.+\.yml$")
             results = {}
             r = [w for w in data["commit"].get("files", []) if p.match(w)]
@@ -177,6 +193,8 @@ class Scanner:
                         self.logger.log.debug(results)
             else:
                 self.logger.log.info("Scanned commit: %s" % data["commit"]["hash"])
+            
+            self.logger.log.debug(message['body'])
 
             if len(message["body"]) >= 3:
                 self.logger.log.info("Failures detected, sending message")
