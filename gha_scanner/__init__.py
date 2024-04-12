@@ -135,6 +135,7 @@ class Scanner:
     def send_report(self, message):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
         self.logger.log.info(f"Sending Message to {message['recips']}")
+        self.logger.log.info(f"Notify: {self.proj_mail}")
         asfpy.messaging.mail(
             recipients=message["recips"],
             subject=message["subject"],
@@ -163,7 +164,7 @@ class Scanner:
                     proj_mail = "root@apache.org"
                     proj_name = "Foundation"
 
-
+            self.logger.log.debug(f"Divined project email: {proj_mail}")
             message = {
                 "body": [
                     f"Greetings {proj_name.capitalize()} PMC!\n",
@@ -173,7 +174,6 @@ class Scanner:
                 "recips": ["notifications@infra.apache.org"],
                 "subject": "GitHub Actions workflow policy violation",
             }
-
             p = re.compile(r"^\.github\/workflows\/.+\.yml$")
             results = {}
             r = [w for w in data["commit"].get("files", []) if p.match(w)]
@@ -205,7 +205,7 @@ class Scanner:
                 message["body"].extend(
                     [
                         "For more information on the GitHub Actions workflow policy, visit:",
-                        "https://infra.apache.org/github-actions-policy.html",
+                        "\thttps://infra.apache.org/github-actions-policy.html\n",
                         "Please remediate the above as soon as possible. if after after 60 days",
                         "these problems are not addressed, we will turn off builds",
                         "\nCheers,",
