@@ -198,7 +198,7 @@ class Scanner:
                     else:
                         self.logger.log.debug(f"{workflow['path']} Passed all tests.")
             else:
-                self.logger.log.info(f"Scanned {data['commit']['project']}commit: {data['commit']['hash']}")
+                self.logger.log.info(f"Scanned {data['commit']['project']} commit: {data['commit']['hash']}")
             
             if len(message["body"]) >= 4:
                 self.logger.log.info(f"Failures detected, generating message to {proj_name}...")
