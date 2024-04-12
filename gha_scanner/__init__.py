@@ -196,7 +196,7 @@ class Scanner:
                     if m:
                         message["body"].extend(m)
                     else:
-                        self.logger.log.debug(f"{workflow['path'] Passed all tests.")
+                        self.logger.log.debug(f"{workflow['path']} Passed all tests.")
             else:
                 self.logger.log.info("Scanned commit: %s" % data["commit"]["hash"])
             
