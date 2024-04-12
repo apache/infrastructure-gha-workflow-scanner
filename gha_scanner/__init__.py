@@ -150,9 +150,13 @@ class Scanner:
             proj_name = None
             proj_mail = None
 
-            if "incubator" in reponame:
-                proj_mail = f"private@{reponame[1]}.apache.org"
-                proj_name = reponame[1]
+            if reponame[0] == incubator:
+                try:
+                    proj_mail = f"private@{reponame[1]}.apache.org"
+                    proj_name = reponame[1]
+                except IndexError:
+                    proj_mail = "private@incubator.apache.org"
+                    proj_name = "Incubator"
             else:
                 try:
                     proj_mail = f"private@{self.mail_map[reponame[0]]}.apache.org"
