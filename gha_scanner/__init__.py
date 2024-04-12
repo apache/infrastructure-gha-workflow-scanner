@@ -150,7 +150,7 @@ class Scanner:
             proj_name = None
             proj_mail = None
 
-            if reponame[0] == incubator:
+            if reponame[0] == "incubator":
                 try:
                     proj_mail = f"private@{reponame[1]}.apache.org"
                     proj_name = reponame[1]
