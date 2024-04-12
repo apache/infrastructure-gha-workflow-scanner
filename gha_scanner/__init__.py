@@ -135,7 +135,7 @@ class Scanner:
     def send_report(self, message):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
         self.logger.log.info(f"Sending Message to {message['recips']}")
-        self.logger.log.info(f"Notify: {self.proj_mail}")
+        self.logger.log.info(f"Notify: {proj_mail}")
         asfpy.messaging.mail(
             recipients=message["recips"],
             subject=message["subject"],
