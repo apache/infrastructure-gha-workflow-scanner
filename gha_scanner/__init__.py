@@ -111,7 +111,6 @@ class Scanner:
         m = []
 
         if flow_data:
-            self.logger.log.debug(flow_data)
             for check in checks.WORKFLOW_CHECKS:
                 self.logger.log.info(
                     "Checking %s:%s(%s): %s"
