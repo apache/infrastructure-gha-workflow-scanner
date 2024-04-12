@@ -107,8 +107,6 @@ class Scanner:
 
     def scan_flow(self, commit, w_data):
         flow_data = self.fetch_flow(commit, w_data)
-        self.logger.log.debug(flow_data)
-
         result = {}
         m = []
 
@@ -137,6 +135,7 @@ class Scanner:
 
     def send_report(self, message):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
+        self.logger.log.info(f"Sending Message to {message['recips']}")
         asfpy.messaging.mail(
             recipients=message["recips"],
             subject=message["subject"],
@@ -203,7 +202,7 @@ class Scanner:
                 self.logger.log.info("Scanned commit: %s" % data["commit"]["hash"])
             
             if len(message["body"]) >= 4:
-                self.logger.log.info("Failures detected, sending message")
+                self.logger.log.info(f"Failures detected, generating message to {proj_name}...")
                 message["body"].extend(
                     [
                         "For more information on the GitHub Actions workflow policy, visit:",
