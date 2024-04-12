@@ -196,7 +196,7 @@ class Scanner:
                     if m:
                         message["body"].extend(m)
                     else:
-                        self.logger.log.debug(results)
+                        self.logger.log.debug(f"{workflow['path'] Passed all tests.")
             else:
                 self.logger.log.info("Scanned commit: %s" % data["commit"]["hash"])
             
@@ -214,5 +214,7 @@ class Scanner:
                 )
                 self.logger.log.debug(message)
                 self.send_report(message)
+            else:
+                self.logger.log.debug(results)
         else:
             self.logger.log.info("Heartbeat Signal Detected")
