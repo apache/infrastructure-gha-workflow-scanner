@@ -1,0 +1,14 @@
+
+[Unit]
+Description=ASF GitHub Actions workflow scanner
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/gha-workflow-scanner/
+ExecStart=/usr/local/bin/pipenv run python3 scanner.py 
+Restart=always
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target
