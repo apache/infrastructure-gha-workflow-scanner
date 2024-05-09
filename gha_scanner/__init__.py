@@ -180,23 +180,26 @@ class Scanner:
             self.logger.log.debug("found %s workflow files" % len(r))
             if len(r) > 0:
                 w_list = self.list_flows(data["commit"])
-                self.logger.log.debug([item["path"] for item in w_list["workflows"]])
-                for workflow in w_list["workflows"]:
-                    # Handle the odd ''
-                    if not workflow["path"]:
-                        self.logger.log.debug(workflow)
-                        continue
+                if workflows in w_list:
+                    self.logger.log.debug([item["path"] for item in w_list["workflows"]])
+                    for workflow in w_list["workflows"]:
+                        # Handle the odd ''
+                        if not workflow["path"]:
+                            self.logger.log.debug(workflow)
+                            continue
 
-                    self.logger.log.debug("Handling: %s" % workflow["path"])
+                        self.logger.log.debug("Handling: %s" % workflow["path"])
 
-                    results[workflow["name"]], m = self.scan_flow(
-                        data["commit"], workflow
-                    )
+                        results[workflow["name"]], m = self.scan_flow(
+                            data["commit"], workflow
+                        )
 
-                    if m:
-                        message["body"].extend(m)
-                    else:
-                        self.logger.log.debug(f"{workflow['path']} Passed all tests.")
+                        if m:
+                            message["body"].extend(m)
+                        else:
+                            self.logger.log.debug(f"{workflow['path']} Passed all tests.")
+                else:
+                    self.logger.log.info(f"No workflows found in  {data['commit']['project']}: {data['commit']}")
             else:
                 self.logger.log.info(f"Scanned {data['commit']['project']} commit: {data['commit']['hash']}")
             
