@@ -61,10 +61,13 @@ class Scanner:
 
     # Fetch all workflows for the project the given hash
     def list_flows(self, commit):
-        r = self.s.get(
-            "%s/repos/apache/%s/actions/workflows?ref=%s"
-            % (self.ghurl, commit["project"], commit["sha"])
-        )
+        try:
+            r = self.s.get(
+                "%s/repos/apache/%s/actions/workflows?ref=%s"
+                % (self.ghurl, commit["project"], commit["sha"])
+            )
+        except requests.exceptions.RequestException as e:
+            self.logger.log.error(f"An error occurred: {e}")
         return r.json()
 
     # Fetch the yaml workflow from github
@@ -134,8 +137,7 @@ class Scanner:
 
     def send_report(self, message):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
-        self.logger.log.info(f"Sending Message to {message['recips']}")
-        self.logger.log.info(f"Notify: {proj_mail}")
+        self.logger.log.info(f"Sending Message to {message['recips'][-1]}")
         asfpy.messaging.mail(
             recipients=message["recips"],
             subject=message["subject"],
@@ -171,16 +173,16 @@ class Scanner:
                     f"The repository: {data['commit']['project']} has been scanned.",
                     "Our analysis has found that the following GitHub Actions workflows need remediation:",
                 ],
-                "recips": ["notifications@infra.apache.org"],
+                "recips": ["notifications@infra.apache.org", proj_mail],
                 "subject": "GitHub Actions workflow policy violation",
             }
             p = re.compile(r"^\.github\/workflows\/.+\.yml$")
             results = {}
             r = [w for w in data["commit"].get("files", []) if p.match(w)]
-            self.logger.log.debug("found %s workflow files" % len(r))
+            self.logger.log.debug("found %s modified workflow files" % len(r))
             if len(r) > 0:
                 w_list = self.list_flows(data["commit"])
-                if workflows in w_list:
+                if "workflows" in w_list.keys():
                     self.logger.log.debug([item["path"] for item in w_list["workflows"]])
                     for workflow in w_list["workflows"]:
                         # Handle the odd ''
@@ -189,7 +191,6 @@ class Scanner:
                             continue
 
                         self.logger.log.debug("Handling: %s" % workflow["path"])
-
                         results[workflow["name"]], m = self.scan_flow(
                             data["commit"], workflow
                         )
