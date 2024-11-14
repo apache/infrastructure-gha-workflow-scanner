@@ -8,6 +8,7 @@ import argparse
 import requests
 import logging
 import json
+import smtplib
 from . import checks
 
 
@@ -66,9 +67,10 @@ class Scanner:
                 "%s/repos/apache/%s/actions/workflows?ref=%s"
                 % (self.ghurl, commit["project"], commit["sha"])
             )
+            return r.json()
         except requests.exceptions.RequestException as e:
             self.logger.log.error(f"An error occurred: {e}")
-        return r.json()
+        return {}
 
     # Fetch the yaml workflow from github
     def fetch_flow(self, commit, w_data):
@@ -190,7 +192,7 @@ class Scanner:
 
             if len(r) > 0:
                 w_list = self.list_flows(data["commit"])
-                if "workflows" in w_list.keys():
+                if "workflows" in w_list.keys() and w_list["workflows"] is not None:
                     self.logger.log.debug([item["path"] for item in w_list["workflows"]])
                     for workflow in w_list["workflows"]:
                         # Handle the odd ''
