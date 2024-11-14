@@ -138,12 +138,15 @@ class Scanner:
     def send_report(self, message):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
         self.logger.log.info(f"Sending Message to {message['recips'][-1]}")
-        asfpy.messaging.mail(
-            recipients=message["recips"],
-            subject=message["subject"],
-            message="\n".join(message["body"]),
-        )
-
+        try:
+            asfpy.messaging.mail(
+                recipients=message["recips"],
+                subject=message["subject"],
+                message="\n".join(message["body"]),
+            )
+        except smtplib.SMTPRecipientsRefused as e:
+            self.logger.log.error(f"An error has occurred: {e}")
+            
     def handler(self, data):
         if "commit" in data:
             reponame = data["commit"]["project"].split("-")
@@ -178,8 +181,13 @@ class Scanner:
             }
             p = re.compile(r"^\.github\/workflows\/.+\.yml$")
             results = {}
-            r = [w for w in data["commit"].get("files", []) if p.match(w)]
-            self.logger.log.debug("found %s modified workflow files" % len(r))
+            if not self.config["full_scan"]:
+                r = [w for w in data["commit"].get("files", []) if p.match(w)]
+                self.logger.log.debug("found %s modified workflow files" % len(r))
+            else:
+                r = [ True ]
+                self.logger.log.debug("Full scan enabled: scanning all workflow files")
+
             if len(r) > 0:
                 w_list = self.list_flows(data["commit"])
                 if "workflows" in w_list.keys():

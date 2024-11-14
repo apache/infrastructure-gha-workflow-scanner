@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import logging
-
 log = logging.getLogger(__name__)
 
 # POLICY VALUES
@@ -51,6 +50,7 @@ def check_concurrency(wdata):
 # "check_name": {
 #     "func": functionName,
 #     "desc": "check description / link to doc / remediation step"
+
 WORKFLOW_CHECKS = {
     "pull_request_target": {
         "func": check_prt,
