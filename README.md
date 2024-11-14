@@ -22,3 +22,10 @@ will test the configured checks.
 ## Logging
 
 The policy scanner logs to logs/gha_scanner.log by default.
+
+## Description
+
+When started as a service, the scanner will check GitHub Actions
+Workflows for compliance with our policy checks. If a workflow
+in the scanned repository is found to be non-compliant, an email
+will be sent to the owning PMC and infrastructure.
