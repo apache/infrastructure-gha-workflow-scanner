@@ -12,6 +12,7 @@ GHA_MAX_CONCURRENCY = 20
 # * Return True if the test is passed.
 # * Return False is the test is failed.
 
+BAD_WORKFLOW_ACTIONS = []
 
 def check_prt(wdata):
     log.debug("Checking workflow for `pull_request_target` trigger")
@@ -45,6 +46,16 @@ def check_concurrency(wdata):
         else:
             return True
 
+
+def check_uses(wdata):
+    log.debug("Checking workflow for outdated packages")
+    for job in wdata["jobs"]:
+        r = [ step["uses"] for step in job["steps"] if step["uses"] in BAD_WORKFLOW_ACTIONS ]
+        if len(r) > 0:
+            log.debug("found unsafe workflow actions")
+            return False
+        else:
+            return True
 
 ### WORKFLOW CHECK MAP
 # "check_name": {
