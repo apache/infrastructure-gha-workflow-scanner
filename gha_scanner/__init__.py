@@ -178,7 +178,8 @@ class Scanner:
                     f"The repository: {data['commit']['project']} has been scanned.",
                     "Our analysis has found that the following GitHub Actions workflows need remediation:",
                 ],
-                "recips": ["notifications@infra.apache.org", proj_mail],
+            #    "recips": ["notifications@infra.apache.org", proj_mail],
+                "recips": ["dfoulks@apache.org"],
                 "subject": "GitHub Actions workflow policy violation",
             }
             p = re.compile(r"^\.github\/workflows\/.+\.yml$")
