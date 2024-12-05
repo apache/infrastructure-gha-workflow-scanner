@@ -58,7 +58,7 @@ WORKFLOW_CHECKS = {
     },
     "max-parallel": {
         "func": check_concurrency,
-        "desc": "`max-parallel: %s` is required for job matrices."
+        "desc": "`max-parallel: %s` is required for job matrices. https://infra.apache.org/github-actions-policy.html#:~:text=All%20workflows%C2%A0MUST%C2%A0have%20a%20job%20concurrency%20level%20less%20than%20or%20equal%20to%2020.%20This%20means%20a%20workflow%20cannot%20have%20more%20than%2020%20jobs%20running%20at%20the%20same%20time%20across%20all%20matrices.",
         % GHA_MAX_CONCURRENCY,
     },
 }
