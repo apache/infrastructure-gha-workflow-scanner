@@ -219,7 +219,7 @@ class Scanner:
                 self.logger.log.info(f"Failures detected, generating message to {proj_name}...")
                 message["body"].extend(
                     [
-                        "For more information on the GitHub Actions workflow policy, visit:",
+                        "\nFor more information on the GitHub Actions workflow policy, visit:",
                         "\thttps://infra.apache.org/github-actions-policy.html\n",
                         "Please remediate the above as soon as possible. if after after 60 days",
                         "these problems are not addressed, we will turn off builds",
