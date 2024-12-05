@@ -180,7 +180,7 @@ class Scanner:
                 ],
             #    "recips": ["notifications@infra.apache.org", proj_mail],
                 "recips": ["notifications@infra.apache.org"],
-                "subject": "GitHub Actions workflow policy violation",
+                "subject": "GitHub Actions workflow policy violations in {data['commit']['project']}",
             }
             p = re.compile(r"^\.github\/workflows\/.+\.yml$")
             results = {}
