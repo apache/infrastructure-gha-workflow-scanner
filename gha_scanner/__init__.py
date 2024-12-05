@@ -49,12 +49,22 @@ class Scanner:
         self.config = config
         self.ghurl = "https://api.github.com"
         self.s = requests.Session()
-        self.mail_map = {} 
-        raw_map = self.s.get("https://whimsy.apache.org/public/committee-info.json").json()['committees']
-        [ self.mail_map.update({ item: raw_map[item]['mail_list']}) for item in raw_map ]
+        self.mail_map = {}
+        raw_map = self.s.get(
+            "https://whimsy.apache.org/public/committee-info.json"
+        ).json()["committees"]
+        [self.mail_map.update({item: raw_map[item]["mail_list"]}) for item in raw_map]
         self.s.headers.update({"Authorization": "token %s" % self.config["gha_token"]})
         self.pubsub = "https://pubsub.apache.org:2070/git/commit"
         self.logger = Log(config)
+        self.message_foot = [
+            "\nFor more information on the GitHub Actions workflow policy, visit:",
+            "\thttps://infra.apache.org/github-actions-policy.html\n",
+            "Please remediate the above as soon as possible.",
+            "If after after 60 days these problems are not addressed, we will turn off builds",
+            "\nCheers,",
+            "\tASF Infrastructure",
+        ]
 
     def scan(self):
         self.logger.log.info("Connecting to %s" % self.pubsub)
@@ -101,10 +111,12 @@ class Scanner:
         except TypeError as e:
             self.logger.log.critical(e)
             return None
-        
+
         self.logger.log.debug(r_content.keys())
         if 404 in r_content.keys():
-            self.logger.log.error("%s doesn't exist in %s"%(w_data["path"], commit["hash"]))
+            self.logger.log.error(
+                "%s doesn't exist in %s" % (w_data["path"], commit["hash"])
+            )
             return None
 
         self.logger.log.debug("retrieved: %s" % w_data["path"])
@@ -121,9 +133,7 @@ class Scanner:
                     "Checking %s:%s(%s): %s"
                     % (commit["project"], w_data["name"], commit["hash"], check)
                 )
-                c_data = checks.WORKFLOW_CHECKS[check]["func"](
-                    flow_data
-                )
+                c_data = checks.WORKFLOW_CHECKS[check]["func"](flow_data)
                 # All workflow checks return a bool, False if the workflow failed.
                 if not c_data:
                     m.append(
@@ -148,7 +158,7 @@ class Scanner:
             )
         except smtplib.SMTPRecipientsRefused as e:
             self.logger.log.error(f"An error has occurred: {e}")
-            
+
     def handler(self, data):
         if "commit" in data:
             reponame = data["commit"]["project"].split("-")
@@ -178,7 +188,7 @@ class Scanner:
                     f"The repository: {data['commit']['project']} has been scanned.",
                     "Our analysis has found that the following GitHub Actions workflows need remediation:",
                 ],
-            #    "recips": ["notifications@infra.apache.org", proj_mail],
+                #    "recips": ["notifications@infra.apache.org", proj_mail],
                 "recips": ["notifications@infra.apache.org"],
                 "subject": f"GitHub Actions workflow policy violations in {data['commit']['project']}",
             }
@@ -188,13 +198,15 @@ class Scanner:
                 r = [w for w in data["commit"].get("files", []) if p.match(w)]
                 self.logger.log.debug("found %s modified workflow files" % len(r))
             else:
-                r = [ True ]
+                r = [True]
                 self.logger.log.debug("Full scan enabled: scanning all workflow files")
 
             if len(r) > 0:
                 w_list = self.list_flows(data["commit"])
                 if "workflows" in w_list.keys() and w_list["workflows"] is not None:
-                    self.logger.log.debug([item["path"] for item in w_list["workflows"]])
+                    self.logger.log.debug(
+                        [item["path"] for item in w_list["workflows"]]
+                    )
                     for workflow in w_list["workflows"]:
                         # Handle the odd ''
                         if not workflow["path"]:
@@ -209,24 +221,23 @@ class Scanner:
                         if m:
                             message["body"].extend(m)
                         else:
-                            self.logger.log.debug(f"{workflow['path']} Passed all tests.")
+                            self.logger.log.debug(
+                                f"{workflow['path']} Passed all tests."
+                            )
                 else:
-                    self.logger.log.info(f"No workflows found in  {data['commit']['project']}: {data['commit']}")
+                    self.logger.log.info(
+                        f"No workflows found in  {data['commit']['project']}: {data['commit']}"
+                    )
             else:
-                self.logger.log.info(f"Scanned {data['commit']['project']} commit: {data['commit']['hash']}")
-            
-            if len(message["body"]) >= 4:
-                self.logger.log.info(f"Failures detected, generating message to {proj_name}...")
-                message["body"].extend(
-                    [
-                        "\nFor more information on the GitHub Actions workflow policy, visit:",
-                        "\thttps://infra.apache.org/github-actions-policy.html\n",
-                        "Please remediate the above as soon as possible. if after after 60 days",
-                        "these problems are not addressed, we will turn off builds",
-                        "\nCheers,",
-                        "\tASF Infrastructure",
-                    ]
+                self.logger.log.info(
+                    f"Scanned {data['commit']['project']} commit: {data['commit']['hash']}"
                 )
+
+            if len(message["body"]) >= 4:
+                self.logger.log.info(
+                    f"Failures detected, generating message to {proj_name}..."
+                )
+                message["body"].extend(self.message_foot)
                 self.logger.log.debug(message)
                 self.send_report(message)
             else:
