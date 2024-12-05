@@ -54,7 +54,7 @@ def check_concurrency(wdata):
 WORKFLOW_CHECKS = {
     "pull_request_target": {
         "func": check_prt,
-        "desc": "`pull_request_target` was found as a workflow trigger.",
+        "desc": "`pull_request_target` was found as a workflow trigger. see https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=321719166#GitHubActionsSecurity-Buildstriggeredwithpull_request_target, for more details"
     },
     "max-parallel": {
         "func": check_concurrency,
