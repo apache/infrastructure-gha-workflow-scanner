@@ -1,14 +1,17 @@
 # Log file
-logfile: "logs/gha_scanner.log"
+logfile: "stdout"
 
 # Max Job Concurrency for workflows
 max_concurrency: 20
 
 # Read only GitHub Token
-gha_token: "<TOKEN>"
+gha_token: "TOKEN"
 
 # Logging Verbosity
 verbosity: 5
 
 # Scan all workflow files on every commit
-full_scan: False
+full_scan: True
+
+# Days until next pestering
+next_pester: 7
