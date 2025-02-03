@@ -9,6 +9,7 @@ import requests
 import logging
 import json
 import smtplib
+import datetime
 from . import checks
 
 
@@ -65,6 +66,8 @@ class Scanner:
             "\nCheers,",
             "\tASF Infrastructure",
         ]
+        d = datetime.datetime.now() + datetime.timedelta(days=self.config["next_pester"])
+        self.msgcache = {"infrastructure": {"date": d}}
 
     def scan(self):
         self.logger.log.info("Connecting to %s" % self.pubsub)
@@ -104,13 +107,11 @@ class Scanner:
                 )
             )
 
-        except KeyError as e:
+        except (KeyError, TypeError, yaml.parser.ParserError) as e:
             self.logger.log.critical(e)
             return None
 
-        except TypeError as e:
-            self.logger.log.critical(e)
-            return None
+
 
         self.logger.log.debug(r_content.keys())
         if 404 in r_content.keys():
@@ -147,10 +148,27 @@ class Scanner:
         else:
             return (None, None)
 
-    def send_report(self, message):
+    def send_report(self, message, proj_name):
         # Message should be a dict containing recips, subject, and body. body is expected to be a list of strings
-        self.logger.log.info(f"Sending Message to {message['recips'][-1]}")
+        # TODO: Get a message cache working so we don't annoy people
+        if proj_name in self.msgcache.keys():
+            # Fetch the next pester date
+            def_now = datetime.datetime.now()
+            np = getattr(self.msgcache[proj_name], "date", def_now)
+            self.logger.log.debug(f"{np}")
+            if np <= def_now:
+                self.logger.log.info(f"Waiting until {self.msgcache[proj_name]['date']}")
+                return
+        # Set new next pester date
+        next_pester = datetime.datetime.now() + datetime.timedelta(
+            days=self.config["next_pester"]
+        )
+        self.msgcache[proj_name] = {"date": next_pester}
+        self.logger.log.info(f"{self.msgcache}")
+
+
         try:
+            self.logger.log.info(f"Sending Message to {message['recips'][-1]}")
             asfpy.messaging.mail(
                 recipients=message["recips"],
                 subject=message["subject"],
@@ -192,17 +210,20 @@ class Scanner:
                 "recips": ["notifications@infra.apache.org"],
                 "subject": f"GitHub Actions workflow policy violations in {data['commit']['project']}",
             }
-            p = re.compile(r"^\.github\/workflows\/.+\.yml$")
+            p = re.compile(r"^\.github\/workflows\/.+\.ya?ml$")
             results = {}
             if not self.config["full_scan"]:
                 r = [w for w in data["commit"].get("files", []) if p.match(w)]
                 self.logger.log.debug("found %s modified workflow files" % len(r))
+                self.logger.log.debug(f"{data['commit'].get('files', [])}")
             else:
                 r = [True]
                 self.logger.log.debug("Full scan enabled: scanning all workflow files")
 
+            self.logger.log.debug(f"{data['commit'].get('files', [])}")
             if len(r) > 0:
                 w_list = self.list_flows(data["commit"])
+                self.logger.log.debug(f"{w_list}")
                 if "workflows" in w_list.keys() and w_list["workflows"] is not None:
                     self.logger.log.debug(
                         [item["path"] for item in w_list["workflows"]]
@@ -238,8 +259,8 @@ class Scanner:
                     f"Failures detected, generating message to {proj_name}..."
                 )
                 message["body"].extend(self.message_foot)
-                self.logger.log.debug(message)
-                self.send_report(message)
+                self.logger.log.debug(message["subject"])
+                self.send_report(message, proj_name)
             else:
                 self.logger.log.debug(results)
         else:
