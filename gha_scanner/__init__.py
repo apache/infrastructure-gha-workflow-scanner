@@ -66,7 +66,9 @@ class Scanner:
             "\nCheers,",
             "\tASF Infrastructure",
         ]
-        d = datetime.datetime.now() + datetime.timedelta(days=self.config["next_pester"])
+        d = datetime.datetime.now() + datetime.timedelta(
+            days=self.config["next_pester"]
+        )
         self.msgcache = {"infrastructure": {"date": d}}
 
     def scan(self):
@@ -110,8 +112,6 @@ class Scanner:
         except (KeyError, TypeError, yaml.parser.ParserError) as e:
             self.logger.log.critical(e)
             return None
-
-
 
         self.logger.log.debug(r_content.keys())
         if 404 in r_content.keys():
@@ -157,7 +157,9 @@ class Scanner:
             np = getattr(self.msgcache[proj_name], "date", def_now)
             self.logger.log.debug(f"{np}")
             if np <= def_now:
-                self.logger.log.info(f"Waiting until {self.msgcache[proj_name]['date']}")
+                self.logger.log.info(
+                    f"Waiting until {self.msgcache[proj_name]['date']}"
+                )
                 return
         # Set new next pester date
         next_pester = datetime.datetime.now() + datetime.timedelta(
@@ -165,7 +167,6 @@ class Scanner:
         )
         self.msgcache[proj_name] = {"date": next_pester}
         self.logger.log.info(f"{self.msgcache}")
-
 
         try:
             self.logger.log.info(f"Sending Message to {message['recips'][-1]}")
