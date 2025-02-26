@@ -1,2 +1,4 @@
 logs/*
 __pycache__
+*.lock
+*.yaml

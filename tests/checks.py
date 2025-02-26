@@ -3,7 +3,7 @@ import gha_scanner
 import yaml
 import pytest
 
-config = yaml.safe_load(open("gha_scanner.config", "r").read())
+config = yaml.safe_load(open("gha-workflow-scanner.yaml", "r").read())
 gh = gha_scanner.Scanner(config)
 
 

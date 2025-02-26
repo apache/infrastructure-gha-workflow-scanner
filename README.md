@@ -3,11 +3,11 @@
 ## Setting up
 `pipenv install`
 
-Create a Read-Only GitHub token
+REQUIRES: a Read-Only GitHub token
 
-Enter your GitHub token into the gha_scanner.config file.
-Optionally, copy the gha_scanner.config file somewhere else
-and pass it to `scanner.py` with `-c/--config`.
+Copy the gha-workflow-scanner.example file to gha-workflow-scanner.yaml
+Edit gha-workflow-scanner.yaml
+Optionally, use a different file with these values and pass it to `scanner.py` with `-c/--config`.
 
 ## Testing
 This product uses pytest. Ensure that checks run after modification.
