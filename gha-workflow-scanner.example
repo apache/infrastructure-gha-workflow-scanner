@@ -7,8 +7,11 @@ max_concurrency: 20
 # Read only GitHub Token
 gha_token: "TOKEN"
 
-# Logging Verbosity
+# Logging Verbosity (0-5)
 verbosity: 5
+
+# For valid verbosity values please see the verbosity conversion table at
+# https://github.com/apache/infrastructure-gha-workflow-scanner/blob/main/gha_scanner/__init__.py#L20-L26
 
 # Scan all workflow files on every commit
 full_scan: True
