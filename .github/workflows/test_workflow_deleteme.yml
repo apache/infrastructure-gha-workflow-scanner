@@ -1,0 +1,9 @@
+name: Test Workflow
+on:
+  pull_request_target:
+
+jobs:
+  test-workflow-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hooray for testing!"
