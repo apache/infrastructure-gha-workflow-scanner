@@ -8,7 +8,7 @@ max_concurrency: 20
 gha_token: "TOKEN"
 
 # Logging Verbosity (0-5)
-verbosity: 5
+verbosity: 1
 
 # For valid verbosity values please see the verbosity conversion table at
 # https://github.com/apache/infrastructure-gha-workflow-scanner/blob/main/gha_scanner/__init__.py#L20-L26
@@ -18,3 +18,5 @@ full_scan: True
 
 # Days until next pestering
 next_pester: 7
+
+exceptions: "/home/dfoulks/asf/infrastructure-gha-workflow-scanner/exceptions.yaml"

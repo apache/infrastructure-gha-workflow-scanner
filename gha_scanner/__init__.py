@@ -12,7 +12,6 @@ import smtplib
 import datetime
 from . import checks
 
-
 class Log:
     def __init__(self, config):
         self.config = config
@@ -70,6 +69,8 @@ class Scanner:
             days=self.config["next_pester"]
         )
         self.msgcache = {"infrastructure": {"date": d}}
+        self.exceptions = yaml.safe_load(open(self.config["exceptions"], "r"))['exceptions']
+        self.logger.log.info("Starting Scanner service...")
 
     def scan(self):
         self.logger.log.info("Connecting to %s" % self.pubsub)
@@ -134,6 +135,12 @@ class Scanner:
                     "Checking %s:%s(%s): %s"
                     % (commit["project"], w_data["name"], commit["hash"], check)
                 )
+                if commit['project'] in self.exceptions:
+                    if w_data["name"] in self.exceptions[commit['project']]:
+                        if check in getattr(self.exceptions[commit['project']], "checks", []):
+                            self.logger.log.critical(f"Workflow: {commit['project']}/{w_data['name']} is exempt from {check}")
+                            continue
+                    
                 c_data = checks.WORKFLOW_CHECKS[check]["func"](flow_data)
                 # All workflow checks return a bool, False if the workflow failed.
                 if not c_data:

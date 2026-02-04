@@ -29,7 +29,7 @@ def check_prt(wdata):
 
 def check_concurrency(wdata):
     log.debug("Checking workflow for max concurrency")
-    for job in wdata["jobs"]:
+    for job in getattr(wdata, "jobs", {}) :
         if "matrix" in wdata["jobs"][job].get("strategy", {}):
             concurrency = 1
             for options in wdata["jobs"][job]["strategy"]["matrix"]:
