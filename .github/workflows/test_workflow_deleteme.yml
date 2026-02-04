@@ -1,6 +1,8 @@
 name: Test Workflow
 on:
   pull_request_target:
+    types:
+      - opened
 
 jobs:
   test-workflow-changes:
