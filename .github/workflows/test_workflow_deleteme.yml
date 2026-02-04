@@ -8,4 +8,4 @@ jobs:
   test-workflow-changes:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Hooray for more Testing!"
+      - run: echo "Hooray for Testing!"
