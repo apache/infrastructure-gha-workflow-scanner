@@ -68,7 +68,7 @@ class Scanner:
         d = datetime.datetime.now() + datetime.timedelta(
             days=self.config["next_pester"]
         )
-        self.msgcache = {"infrastructure": {"date": d}}
+        self.msgcache = {}
         self.exceptions = yaml.safe_load(open(self.config["exceptions"], "r"))['exceptions']
         self.logger.log.info("Starting Scanner service...")
 
