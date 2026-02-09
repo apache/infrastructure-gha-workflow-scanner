@@ -264,4 +264,4 @@ class Scanner:
             else:
                 self.logger.log.debug(results)
         else:
-            self.logger.log.info("Heartbeat Signal Detected")
+            self.logger.log.debug("Heartbeat Signal Detected")
