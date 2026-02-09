@@ -19,4 +19,4 @@ full_scan: True
 # Days until next pestering
 next_pester: 7
 
-exceptions: "/home/dfoulks/asf/infrastructure-gha-workflow-scanner/exceptions.yaml"
+exceptions: "/opt/infrastructure-gha-workflow-scanner/exceptions.yaml"
