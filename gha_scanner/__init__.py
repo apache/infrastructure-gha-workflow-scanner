@@ -47,16 +47,18 @@ class Scanner:
     # Handles API requests to GitHub
     def __init__(self, config):
         self.config = config
+        self.logger = Log(config)
+        self.logger.log.info(f"Loading Default settings...")
         self.ghurl = "https://api.github.com"
         self.s = requests.Session()
         self.mail_map = {}
+        self.logger.log.info(f"Fetching Mail map")
         raw_map = self.s.get(
             "https://whimsy.apache.org/public/committee-info.json"
         ).json()["committees"]
         [self.mail_map.update({item: raw_map[item]["mail_list"]}) for item in raw_map]
         self.s.headers.update({"Authorization": "token %s" % self.config["gha_token"]})
         self.pubsub = "https://pubsub.apache.org:2070/git/commit"
-        self.logger = Log(config)
         self.message_foot = [
             "\nFor more information on the GitHub Actions workflow policy, visit:",
             "\thttps://infra.apache.org/github-actions-policy.html\n",
@@ -67,7 +69,7 @@ class Scanner:
         ]
         self.msgcache = {}
         if self.config.get("exceptions", None) and os.isfile(self.config["exceptions"])
-            self.logger.log.info(f"Loading exceptions from {self.config['exceptions']}"
+            self.logger.log.info(f"Loading exceptions from {self.config['exceptions']}")
             with open(self.config["exceptions"], "r") as f:
                 self.exceptions = yaml.safe_load(f, "r"))["exceptions"]
                 f.close()
@@ -139,7 +141,7 @@ class Scanner:
                 )
                 if commit['project'] in self.exceptions:
                     if w_data["name"] in self.exceptions[commit['project']]:
-                        if check in getattr(self.exceptions[commit['project']], "checks", []):
+                        if check in self.exceptions[commit['project']][w_data["name"]].get("checks", []):
                             self.logger.log.critical(f"Workflow: {commit['project']}/{w_data['name']} is exempt from {check}")
                             continue
                     
