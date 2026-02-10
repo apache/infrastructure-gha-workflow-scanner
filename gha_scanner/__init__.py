@@ -66,7 +66,12 @@ class Scanner:
             "\tASF Infrastructure",
         ]
         self.msgcache = {}
-        self.exceptions = yaml.safe_load(open(self.config["exceptions"], "r"))['exceptions']
+        if self.config.get("exceptions", None) and os.isfile(self.config["exceptions"])
+            self.logger.log.info(f"Loading exceptions from {self.config['exceptions']}"
+            with open(self.config["exceptions"], "r") as f:
+                self.exceptions = yaml.safe_load(f, "r"))["exceptions"]
+                f.close()
+
         self.logger.log.info("Starting Scanner service...")
 
     def scan(self):
