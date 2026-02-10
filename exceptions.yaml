@@ -1,0 +1,23 @@
+### Exceptions Map
+# repo name: 
+#   workflow:
+#     comment: Jira ticket
+#     checks:
+#       - exempt_check_name
+
+exceptions:
+  beam:
+    LabelPrs:
+      comment: "INFRA-27601 -- This workflow does not expose any secrets at all."
+      checks:
+        - "pull_request_target"
+    pr-bot-pr-updates:
+      comment: "INFRA-27601 -- This workflow does not run on forks, and it pins the branch to master"
+      checks:
+        - "pull_request_target"
+    PreCommit Go:
+      comment: "INFRA-27601 -- This workflow does expose an elevated GitHub Token credential, but it is explicitly scoped to only allow some read permissions (no escalation beyond what is already public) and Actions write permissions"
+      checks:
+        - "pull_request_target"
+
+
