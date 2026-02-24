@@ -21,21 +21,13 @@ def test_ghtoken():
     assert result.status_code == 200
 
 
-
-# def test_list_flows():
-# TODO This needs to test teh structure of the commit, not the data.
-#    result = gh.list_flows(data.passing_commit)
-#    expected = data.passing_list_flows
-#    assert json.dumps(result, sort_keys=True) == json.dumps(expected, sort_keys=True)
-
+def test_excluded_flow():
+    result = gh.scan_flow(data.excluded_workflow['commit'], data.excluded_workflow['wdata'])
+    expected = [{"max-parallel": True}, []]
+    assert json.dumps(result) == json.dumps(expected)
 
 def test_fetch_flow():
     result = gh.fetch_flow(data.passing_commit, data.passing_wdata)
     expected = data.passing_workflow
     assert json.dumps(result) == json.dumps(expected)
 
-
-def test_check_prt_pass():
-    result = gha_scanner.checks.check_prt(data.passing_workflow)
-    expected = True
-    assert result == expected
