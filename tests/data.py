@@ -1,3 +1,12 @@
+excluded_workflow = {
+    "wdata": { "path": ".github/workflows/label_prs.yml", "name": "LabelPrs" },
+    "commit": {
+        "project": "beam",
+        "name": "LabelPrs",
+        "hash": "6de67443",
+        "sha": "6de67443528da508b9f22e05390581816d5e5266",
+    }
+}
 passing_commit = {
     "project": "superset",
     "hash": "951d7d66",
@@ -105,7 +114,7 @@ failed_concurrency = {
         "build": {
             "strategy": {
                 "matrix": {
-                    "java": [8, 11],
+                    "java": [8, 11, 18, 20],
                     "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
                     "include": [
                         {"java": 12, "os": "ubuntu-latest"},

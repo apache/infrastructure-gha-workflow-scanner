@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import re
 import sys
 import yaml
@@ -11,7 +12,6 @@ import json
 import smtplib
 import datetime
 from . import checks
-
 
 class Log:
     def __init__(self, config):
@@ -48,16 +48,18 @@ class Scanner:
     # Handles API requests to GitHub
     def __init__(self, config):
         self.config = config
+        self.logger = Log(config)
+        self.logger.log.info(f"Loading Default settings...")
         self.ghurl = "https://api.github.com"
         self.s = requests.Session()
         self.mail_map = {}
+        self.logger.log.info(f"Fetching Mail map")
         raw_map = self.s.get(
             "https://whimsy.apache.org/public/committee-info.json"
         ).json()["committees"]
         [self.mail_map.update({item: raw_map[item]["mail_list"]}) for item in raw_map]
         self.s.headers.update({"Authorization": "token %s" % self.config["gha_token"]})
         self.pubsub = "https://pubsub.apache.org:2070/git/commit"
-        self.logger = Log(config)
         self.message_foot = [
             "\nFor more information on the GitHub Actions workflow policy, visit:",
             "\thttps://infra.apache.org/github-actions-policy.html\n",
@@ -66,10 +68,14 @@ class Scanner:
             "\nCheers,",
             "\tASF Infrastructure",
         ]
-        d = datetime.datetime.now() + datetime.timedelta(
-            days=self.config["next_pester"]
-        )
-        self.msgcache = {"infrastructure": {"date": d}}
+        self.msgcache = {}
+        if self.config.get("exceptions", None) and os.path.isfile(self.config["exceptions"]):
+            self.logger.log.info(f"Loading exceptions from {self.config['exceptions']}")
+            with open(self.config["exceptions"], "r") as f:
+                self.exceptions = yaml.safe_load(f)["exceptions"]
+                f.close()
+
+        self.logger.log.info("Starting Scanner service...")
 
     def scan(self):
         self.logger.log.info("Connecting to %s" % self.pubsub)
@@ -134,6 +140,12 @@ class Scanner:
                     "Checking %s:%s(%s): %s"
                     % (commit["project"], w_data["name"], commit["hash"], check)
                 )
+                if commit['project'] in self.exceptions:
+                    if w_data["name"] in self.exceptions[commit['project']]:
+                        if check in self.exceptions[commit['project']][w_data["name"]].get("checks", []):
+                            self.logger.log.critical(f"Workflow: {commit['project']}/{w_data['name']} is exempt from {check}")
+                            continue
+                    
                 c_data = checks.WORKFLOW_CHECKS[check]["func"](flow_data)
                 # All workflow checks return a bool, False if the workflow failed.
                 if not c_data:
